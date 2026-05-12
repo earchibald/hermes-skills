@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{AGENT_NAME}} Icon Concepts</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0A0A0F;
+    color: #c0c0c0;
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    padding: 40px;
+  }
+  h1 {
+    color: {{PRIMARY_COLOR}};
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .subtitle {
+    color: #4A6FA5;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 40px;
+    letter-spacing: 1px;
+  }
+  .gallery {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .card {
+    background: #111114;
+    border: 1px solid #1A1D23;
+    border-radius: 8px;
+    padding: 24px;
+    width: 300px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #2979FF; }
+  .card h2 {
+    color: #84FFFF;
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+  .card svg, .card object {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    background: #0A0A0F;
+    display: block;
+    margin-bottom: 16px;
+  }
+  .tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: #1A1D23;
+    color: #4A6FA5;
+    letter-spacing: 0.5px;
+  }
+  .tag.primary { color: {{PRIMARY_COLOR}}; border: 1px solid {{PRIMARY_COLOR}}33; }
+  .tag.secondary { color: #2979FF; border: 1px solid #2979FF33; }
+  .description {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #808080;
+    margin-bottom: 12px;
+  }
+  .pros {
+    font-size: 11px;
+    color: #4A6FA5;
+    line-height: 1.5;
+  }
+  .pros span { color: {{PRIMARY_COLOR}}; }
+  .footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 11px;
+    color: #2D3142;
+    letter-spacing: 1px;
+  }
+  .vote-area {
+    margin-top: 40px;
+    padding: 20px;
+    background: #0D0D12;
+    border: 1px dashed #1A1D23;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .vote-area h3 {
+    color: #84FFFF;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+  .vote-area p {
+    font-size: 12px;
+    color: #4A6FA5;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<h1>{{AGENT_NAME}}</h1>
+<p class="subtitle">icon concepts · {{SUBTITLE}}</p>
+
+<div class="gallery">
+
+  <!-- Concept 1 -->
+  <div class="card">
+    <h2>01 · {{CONCEPT1_NAME}}</h2>
+    <object data="{{CONCEPT1_FILE}}" type="image/svg+xml"></object>
+    <div class="tags">
+      <span class="tag primary">{{TAG1_A}}</span>
+      <span class="tag secondary">{{TAG1_B}}</span>
+      <span class="tag">{{TAG1_C}}</span>
+    </div>
+    <div class="description">{{CONCEPT1_DESC}}</div>
+    <div class="pros">
+      <span>✦</span> {{PRO1_A}}<br>
+      <span>✦</span> {{PRO1_B}}<br>
+      <span>✦</span> {{PRO1_C}}
+    </div>
+  </div>
+
+  <!-- Concept 2 -->
+  <div class="card">
+    <h2>02 · {{CONCEPT2_NAME}}</h2>
+    <object data="{{CONCEPT2_FILE}}" type="image/svg+xml"></object>
+    <div class="tags">
+      <span class="tag primary">{{TAG2_A}}</span>
+      <span class="tag">{{TAG2_B}}</span>
+      <span class="tag secondary">{{TAG2_C}}</span>
+    </div>
+    <div class="description">{{CONCEPT2_DESC}}</div>
+    <div class="pros">
+      <span>✦</span> {{PRO2_A}}<br>
+      <span>✦</span> {{PRO2_B}}<br>
+      <span>✦</span> {{PRO2_C}}
+    </div>
+  </div>
+
+  <!-- Concept 3 -->
+  <div class="card">
+    <h2>03 · {{CONCEPT3_NAME}}</h2>
+    <object data="{{CONCEPT3_FILE}}" type="image/svg+xml"></object>
+    <div class="tags">
+      <span class="tag">{{TAG3_A}}</span>
+      <span class="tag secondary">{{TAG3_B}}</span>
+      <span class="tag primary">{{TAG3_C}}</span>
+    </div>
+    <div class="description">{{CONCEPT3_DESC}}</div>
+    <div class="pros">
+      <span>✦</span> {{PRO3_A}}<br>
+      <span>✦</span> {{PRO3_B}}<br>
+      <span>✦</span> {{PRO3_C}}
+    </div>
+  </div>
+
+</div>
+
+<div class="vote-area">
+  <h3>AGENT VOTE</h3>
+  <p>
+    <strong style="color:{{PRIMARY_COLOR}}">All agents</strong> — review these concepts via vault.<br>
+    Write your vote in the target agent's inbox or broadcast.<br>
+    Write deadline + next steps here.
+  </p>
+</div>
+
+<div class="footer">agent-vault / {{AGENT_NAME}} / corpus / icons / gallery.html</div>
+
+</body>
+</html>
