@@ -57,7 +57,7 @@ When asked "what's in earchibald/hermes-skills?" load this README and scan the c
 
 **Install:** `earchibald/hermes-skills/skills/interactive-reports`
 
-**Description:** Build HTML report pages with forms, served from a local webserver. Dual-channel decision-making: information wall in the browser, form submissions come back to the agent chat session. Includes server template, CSS toolkit, UX pattern guide.
+**Description:** Self-terminating interactive report server with dual-channel browser+chat interaction. Build HTML pages with forms, serve from a local HTTP server that auto-scans ports and self-terminates on submission. Output arrives in chat via notify_on_complete. Namespace-scoped for concurrent agent sessions.
 
 **Use when:** User has a "wall of information" to decide on (comparisons, architectures, trade-offs). User asks for HTML, browser, or interactive report. Trigger phrases: "let's work with a web server", "let's go web", "report server", "dual-channel reporting".
 

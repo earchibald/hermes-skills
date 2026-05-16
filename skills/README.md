@@ -42,7 +42,7 @@ Write SKILL.md files with correct YAML frontmatter, structure conventions, and v
 Kanban-based coordination between autonomous agents via shared vault.
 
 ### interactive-reports
-Build HTML report pages with forms, served from a local webserver. Dual-channel decision-making: information wall in the browser, form submissions come back to the agent. Includes server template + CSS toolkit.
+Self-terminating interactive report server with dual-channel browser+chat interaction: build HTML pages with forms, serve from a local HTTP server that auto-scans ports and self-terminates on submission. Output arrives in chat via notify_on_complete. Namespace-scoped for concurrent sessions. Includes server template + CSS toolkit.
 
 ### obsidian-projects-system
 Operate the obsidian-projects issue tracker and agent orchestration system.
