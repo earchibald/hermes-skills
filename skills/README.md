@@ -10,25 +10,26 @@ Add this repo as a Hermes skill tap:
 hermes skills tap add earchibald/hermes-skills
 ```
 
-Then browse and install:
+Then search and install:
 
 ```bash
-hermes skills browse        # see available skills
-hermes skills install <id>  # install one
+hermes skills search <query>   # search all sources including this tap
+hermes skills install earchibald/hermes-skills/skills/<category>/<name>
 ```
 
 ## Structure
 
 ```
 hermes-skills/
-├── <category>/
-│   ├── <skill-name>/
-│   │   ├── SKILL.md       # Required — the skill definition
-│   │   ├── references/    # Supporting docs (optional)
-│   │   └── scripts/       # Helper scripts (optional)
-│   └── ...
-├── README.md
-└── LICENSE
+└── skills/
+    ├── <category>/
+    │   ├── <skill-name>/
+    │   │   ├── SKILL.md       # Required — the skill definition
+    │   │   ├── references/    # Supporting docs (optional)
+    │   │   └── scripts/       # Helper scripts (optional)
+    │   └── ...
+    ├── README.md
+    └── LICENSE
 ```
 
 Categories follow the [official Hermes skill conventions](https://github.com/NousResearch/hermes-agent):
