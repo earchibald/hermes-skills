@@ -17,10 +17,26 @@ metadata:
 
 # Interactive Reports
 
-Render dense analytical output as interactive HTML pages served from a local
-HTTP server. The user browses the report in their browser, makes selections
-and types comments into form elements, and submits — the response lands back
-in the agent's chat session as a JSON file for you to read.
+## TL;DR — How to Use
+
+```
+1. plan WHAT decision + what info wall supports it
+2. write /tmp/<name>.html  (single file, dark theme, forms, submit → /submit)
+3. copy templates/mini-server.py → /tmp/memory-report-server.py
+4. edit PAGES dict to map routes to your HTML file(s)
+5. terminal(background=true, command="python3 /tmp/memory-report-server.py")
+6. terminal("open http://localhost:8899/")
+7. periodically: cat /tmp/memory_report_response.json
+8. on response: read JSON, clear file, continue in chat
+```
+
+**Critical rules:**
+- Only actual form elements get hover/pointer. Cards, diagrams, steps, tier info = `cursor: default`, no hover. Users will click anything that highlights.
+- Server NEVER auto-opens browser. Agent controls `open` explicitly. Remove `webbrowser` from server.
+- Response file at `/tmp/memory_report_response.json`. Last submission wins. Clear on restart.
+- Port 8899. Check with `lsof -i :8899`. Kill old server before restart.
+
+**Full method below →**
 
 Use this when:
 - You have a **wall of information** to present (comparisons, architectures,
