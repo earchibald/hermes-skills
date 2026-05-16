@@ -11,56 +11,45 @@ hermes skills tap add earchibald/hermes-skills
 # Search for a skill by keyword
 hermes skills search <query>
 
-# Install a skill by its full repo path
-hermes skills install earchibald/hermes-skills/skills/<category>/<name>
+# Install a skill
+hermes skills install earchibald/hermes-skills/skills/<name>
 ```
 
 ## Structure
 
 ```
 hermes-skills/skills/
-├── <category>/
-│   ├── <skill-name>/
-│   │   ├── SKILL.md            # Required — skill definition (YAML frontmatter + markdown)
-│   │   ├── references/         # Optional — supporting documentation
-│   │   ├── templates/          # Optional — reusable file templates
-│   │   └── scripts/            # Optional — helper scripts
-│   └── ...
+├── <skill-name>/
+│   ├── SKILL.md            # Required — skill definition (YAML frontmatter + markdown)
+│   ├── references/         # Optional — supporting documentation
+│   ├── templates/          # Optional — reusable file templates
+│   └── scripts/            # Optional — helper scripts
+├── LICENSE
+└── README.md
 ```
 
-Categories follow the [official Hermes skill taxonomy](https://github.com/NousResearch/hermes-agent):
-
-| Category | Description |
-|---|---|
-| `autonomous-ai-agents` | Agent orchestration, spawning, multi-agent workflows |
-| `creative` | Content generation, visual design, interactive reports |
-| `software-development` | Coding workflows, project management, skill authoring |
+Each directory under `skills/` is a single installable skill. No nested category directories — the flat structure ensures tap discovery works correctly with Hermes' one-level scan depth.
 
 ## Skill Catalog
 
-### autonomous-ai-agents
+### agent-icon-design
+Design SVG icons/avatars for AI agents: draft SVG concepts, refine, render as HTML galleries.
 
-| Skill | Description |
-|---|---|
-| `inter-agent-vault-coordination` | Kanban-based coordination between autonomous agents via shared vault |
+### hermes-agent-skill-authoring
+Write SKILL.md files with correct YAML frontmatter, structure conventions, and validation patterns.
 
-### creative
+### inter-agent-vault-coordination
+Kanban-based coordination between autonomous agents via shared vault.
 
-| Skill | Description |
-|---|---|
-| `agent-icon-design` | Design SVG icons/avatars for AI agents |
-| `interactive-reports` | Build HTML report pages with forms, served from a local webserver. Enables dual-channel decision-making: information wall in the browser, form submissions come back to the agent. Includes server template + CSS toolkit. |
+### interactive-reports
+Build HTML report pages with forms, served from a local webserver. Dual-channel decision-making: information wall in the browser, form submissions come back to the agent. Includes server template + CSS toolkit.
 
-### software-development
-
-| Skill | Description |
-|---|---|
-| `hermes-agent-skill-authoring` | Write SKILL.md files with correct frontmatter, structure, and validation |
-| `obsidian-projects-system` | Operate the obsidian-projects issue tracker and agent orchestration system |
+### obsidian-projects-system
+Operate the obsidian-projects issue tracker and agent orchestration system.
 
 ## Skill Format
 
-Every skill requires a `SKILL.md` with YAML frontmatter:
+Each skill requires `SKILL.md` with YAML frontmatter:
 
 ```yaml
 ---
@@ -76,15 +65,15 @@ metadata:
 ---
 ```
 
-The body is markdown. Skills load via `skill_view(name)` and their instructions are injected into the agent's context. Reference files and templates under `references/` and `templates/` are accessible via `skill_view(name, file_path=...)`.
+Body is markdown. Load via `skill_view(name)` — instructions inject into agent context. Reference files accessible via `skill_view(name, file_path=...)`.
 
 ## Contributing
 
 PRs welcome. To add a skill:
 
-1. Create `skills/<category>/<skill-name>/SKILL.md`
-2. Add supporting files under `references/`, `templates/`, or `scripts/` as needed
-3. Update the catalog table in this README
+1. Create `skills/<name>/SKILL.md`
+2. Add `references/`, `templates/`, `scripts/` as needed
+3. Update the catalog above
 4. Open a PR
 
 Skills are auto-discovered by the tap system — no registry registration needed.
