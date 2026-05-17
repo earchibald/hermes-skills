@@ -67,6 +67,18 @@ When asked "what's in earchibald/hermes-skills?" load this README and scan the c
 
 ---
 
+### ntfy-notify
+
+**Install:** `earchibald/hermes-skills/skills/ntfy-notify`
+
+**Description:** Send push notifications via ntfy.sh topics. Arbitrary messages with optional title, priority, tags, click URL, and attachments.
+
+**Use when:** User asks to send a notification, ping, or push alert. Task completions, cron summaries, or status pings.
+
+**Ships with:** SKILL.md only.
+
+---
+
 ### obsidian-projects-system
 
 **Install:** `earchibald/hermes-skills/skills/obsidian-projects-system`
