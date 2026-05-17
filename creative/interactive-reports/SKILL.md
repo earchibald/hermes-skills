@@ -18,6 +18,18 @@ metadata:
 
 # Interactive Reports
 
+> **⚠️ INSTALL NOTE: This skill requires `--force` to install.**
+>
+> The Hermes skill scanner blocks community-sourced skills that contain patterns
+> like `rm -rf /tmp/...`, `os.environ.get()`, and `subprocess.Popen`. These are
+> all legitimate in this skill — the server does temp cleanup, reads env vars for
+> session namespacing, and the polling script starts a subprocess. The scanner is
+> correct to flag them, but here they are safe.
+>
+> ```bash
+> hermes skills install earchibald/hermes-skills/creative/interactive-reports --force
+> ```
+
 ## TL;DR — How to Use
 
 ```

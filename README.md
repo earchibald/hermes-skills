@@ -53,15 +53,17 @@ When asked "what's in earchibald/hermes-skills?" load this README and scan the c
 
 ---
 
-### interactive-reports
+### interactive-reports (v2.3.0) ⚠️ `--force` required
 
-**Install:** `earchibald/hermes-skills/skills/interactive-reports`
+**Install:** `earchibald/hermes-skills/creative/interactive-reports`
 
-**Description:** Self-terminating interactive report server with dual-channel browser+chat interaction. Build HTML pages with forms, serve from a local HTTP server that auto-scans ports and self-terminates on submission. Output arrives in chat via notify_on_complete. Namespace-scoped for concurrent agent sessions.
+**Description:** Durable interactive report server — build HTML dashboards with forms, serve from a local HTTP server that stays alive for repeated submissions. Dedicated port range 9100-9199 avoids sibling agent collisions. Standalone poller script — no bash pipes, no permission prompts.
 
-**Use when:** User has a "wall of information" to decide on (comparisons, architectures, trade-offs). User asks for HTML, browser, or interactive report. Trigger phrases: "let's work with a web server", "let's go web", "report server", "dual-channel reporting".
+**⚠️ Requires `--force`:** The skill starts a local HTTP server, creates/cleans up temp directories, and reads environment variables for session namespacing. The Hermes skill scanner correctly flags these patterns. They are legitimate — install with `hermes skills install earchibald/hermes-skills/creative/interactive-reports --force`.
 
-**Ships with:** SKILL.md, references/ (server-pattern.py, ux-patterns.md, wall-of-information-css.md, hardware-verification-before-rendering.md), templates/ (mini-server.py)
+**Use when:** User has a "wall of information" to decide on (comparisons, architectures, trade-offs). User asks for HTML, browser, or interactive report. Trigger phrases: "interactive report", "let's go web", "report server", "dual-channel reporting".
+
+**Ships with:** SKILL.md, templates/mini-server.py (v2 durable — no `self.server.shutdown()`), scripts/poller.py (standalone, no permission prompts), references/ (8 files: wall-of-information-css.md, ux-patterns.md, static-asset-serving.md, hardware-verification-before-rendering.md, screenshot-capture-technique.md, webhook-delivery-types.md, api-proxy-endpoints.md, server-pattern.py)
 
 ---
 
