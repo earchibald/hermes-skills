@@ -4,6 +4,11 @@
 FIXED v2: Removed self.server.shutdown() which killed ALL sibling server
 processes on the same machine when one got a form submission.
 
+FIXED v3: Replaced socketserver.TCPServer with ThreadingTCPServer.
+TCPServer is single-threaded — SSE connections and long-polling
+endpoints block ALL other requests. ThreadingTCPServer with
+daemon_threads=True allows concurrent request handling.
+
 On startup:
   - Computes NS from AGENT + SESSION
   - Scans ports 9100-9199 for first free
@@ -21,9 +26,22 @@ import json, os, socketserver, sys, time, socket
 from http import server
 from urllib.parse import urlparse
 
-AGENT = os.environ.get("HERMES_AGENT_NAME", "argus").lower().replace(" ", "-")
-SESSION = (os.environ.get("HERMES_SESSION_ID") or str(int(time.time())))[:12]
-NS = "ir_{}_{}".format(AGENT, SESSION)
+# Namespace resolution (runtime-agnostic). Precedence:
+#   1. IR_NS               -- full namespace override (use to pin NS across
+#                             restarts and avoid the NS-drift-on-restart bug)
+#   2. IR_AGENT / IR_SESSION  -- generic agent/session parts (any runtime)
+#   3. HERMES_AGENT_NAME / HERMES_SESSION_ID  -- Hermes back-compat
+#   4. timestamp fallback  -- single-agent default (Claude Code, plain CLI)
+_NS_OVERRIDE = os.environ.get("IR_NS")
+if _NS_OVERRIDE:
+    NS = _NS_OVERRIDE
+else:
+    AGENT = (os.environ.get("IR_AGENT")
+             or os.environ.get("HERMES_AGENT_NAME", "argus")).lower().replace(" ", "-")
+    SESSION = (os.environ.get("IR_SESSION")
+               or os.environ.get("HERMES_SESSION_ID")
+               or str(int(time.time())))[:12]
+    NS = "ir_{}_{}".format(AGENT, SESSION)
 RESPONSE_DIR = "/tmp/{}_responses".format(NS)
 os.makedirs(RESPONSE_DIR, exist_ok=True)
 LATEST_RESPONSE = os.path.join(RESPONSE_DIR, "latest.json")
@@ -126,12 +144,12 @@ class H(server.BaseHTTPRequestHandler):
         else:
             self.send_response(404); self.end_headers()
 
-    def log_message(self, *a): pass
+    def log_message(self, format, *args): pass  # silence stderr access log
 
 if __name__ == "__main__":
     for f in os.listdir(RESPONSE_DIR):
         os.remove(os.path.join(RESPONSE_DIR, f))
-    srv = type("S", (socketserver.TCPServer,), {"allow_reuse_address": True})(("", PORT), H)
+    srv = type("S", (socketserver.ThreadingTCPServer,), {"allow_reuse_address": True, "daemon_threads": True})(("", PORT), H)
     sys.stdout.write("ir_ready ns={} port={}\n".format(NS, PORT))
     sys.stdout.write("response_dir={}\n".format(RESPONSE_DIR))
     sys.stdout.flush()

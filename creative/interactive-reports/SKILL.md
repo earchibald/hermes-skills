@@ -6,7 +6,7 @@ description: >-
   repeated submissions. Agent polls /last-response endpoint. Isolated port
   range 9100-9199 avoids sibling agent collisions.
   "let's go web", "report server", "dual-channel reporting", "interactive report".
-version: 2.3.0
+version: 2.4.0
 author: Argus
 license: MIT
 platforms: [macos, linux]
@@ -47,6 +47,7 @@ metadata:
 
 **Critical rules:**
 - **Always present URLs with `http://` prefix** (e.g. `http://localhost:9100/`, not `localhost:9100`). Bare `host:port` strings are not clickable in chat — the user called this out explicitly.
+- **PRIMARY ACTIONS MUST BE BUTTONS.** Never tell the user to open browser console, paste commands, or run terminal commands to interact with a running report. If the user needs to trigger an action, it needs a clickable button on the page. Console-only interaction was explicitly rejected: "wire that shit into the UI. a MUST not a SHOULD." Use `browser_console` for your own debugging — never ask the user to do it.
 - Only actual form elements get hover/pointer. Cards, diagrams, steps, tier info = `cursor: default`, no hover. Users will click anything that highlights.
 - Server NEVER auto-opens browser. Agent controls `open` explicitly. Remove `webbrowser` from server.
 - **Namespace ALL artifacts and polling script.** Response files, HTML page, server script, port. Use NS = `ir_{AGENT}_{SESSION}`. All artifacts go under `/tmp/{NS}_*`. The polling script (see `scripts/poller.py`) should be copied to `/tmp/{NS}_poller.py`. Never share a single poller instance between concurrent agents — timestamp thresholds collide.
@@ -84,6 +85,7 @@ self.wfile.write(json.dumps({"ok": True}).encode())
 cp scripts/poller.py /tmp/<NS>_poller.py
 
 # Start as background process with notify_on_complete
+# Args: <port> [timeout_seconds] [since]
 terminal(background=True, notify_on_complete=True,
          command="python3 /tmp/<NS>_poller.py <PORT>")
 ```
@@ -93,6 +95,15 @@ pipelines, so Hermes security checks do not trigger. It exits 0 when a
 new submission arrives, printing the JSON to stdout, where `notify_on_complete`
 delivers it to the conversation.
 
+**Fires on ANY submission** — form posts, quick-action buttons, freeform
+messages — by keying on the server-stamped `received_at`, not on an `action`
+key. (The old behavior only fired when the JSON had an `action` field, so
+quick-action button clicks were silently dropped and the poller hung until
+timeout.) Pass the optional third arg `since` = the `received_at` of the last
+submission you processed; the poller then fires only on something strictly
+newer, so a restarted poller does not instantly re-fire on a stale
+`latest.json`. Never share one poller instance between concurrent agents.
+
 **Bash fallback (works but triggers permission prompts):**
 
 ```bash
@@ -100,7 +111,7 @@ terminal(background=True, notify_on_complete=True, command="""\
 for i in {1..60}; do
   resp=$(curl -s http://localhost:<PORT>/last-response 2>/dev/null)
   if echo "$resp" | grep -q '"submitted": false'; then sleep 2
-  elif echo "$resp" | grep -q '"action"'; then echo "RESPONSE: $resp"; exit 0
+  elif echo "$resp" | grep -q '"received_at"'; then echo "RESPONSE: $resp"; exit 0
   else sleep 2
   fi
 done; echo 'TIMEOUT'
@@ -199,6 +210,8 @@ Use this when:
   previews) by combining static asset serving with the normal PAGES pattern.
   This was used in production to build and serve a complete Threads post
   series about the skill, including embedded screenshots.
+- **Agent-to-browser streaming** — push agent thinking/logs/game-state to
+  the browser in real-time via SSE. See `references/sse-streaming-pattern.md`.
 
 Do NOT use this for:
 - Quick answers or single-option responses (chat is faster)
@@ -577,7 +590,7 @@ After telling the user the page is up, wait for them to interact.
 for i in {1..60}; do
   resp=$(curl -s http://localhost:<PORT>/last-response 2>/dev/null)
   if echo "$resp" | grep -q '"submitted": false'; then sleep 2
-  elif echo "$resp" | grep -q '"action"'; then echo "RESPONSE: $resp"; exit 0
+  elif echo "$resp" | grep -q '"received_at"'; then echo "RESPONSE: $resp"; exit 0
   else sleep 2
   fi
 done; echo 'TIMEOUT'
@@ -640,15 +653,21 @@ when multiple sibling agents start report servers simultaneously.
 
 ## References
 
+- `references/concept-lab-pattern.md` — Multi-page concept lab for creative/design exploration: decisions page → wireframe → deep-dive comparison. Build pages 2-3 proactively while waiting for form submissions.
+- `references/ns-drift-on-restart.md` — Server NS recomputes on restart, causing FileNotFoundErrors. Hardcode NS fix.
+- `references/single-endpoint-agent-init.md` — One GET endpoint returns everything an agent needs to start. Eliminates multi-step setup and console pasting. Includes deterministic seed-as-ID pattern.
+
 - `references/api-proxy-endpoints.md` — Adding custom POST handlers to the report server that proxy to external APIs (e.g. live search, data lookup from within an interactive report). Includes client-side JS patterns, error handling, and CORS requirements.
 - `references/static-asset-serving.md` — Serving images, CSS, and JS alongside your HTML report: directory-based routes, direct routes, and base64 inline alternatives with safety checks and MIME mapping.
 - `references/screenshot-capture-technique.md` — Capturing browser screenshots of your report pages for promotional/documentation use: browser_vision with non-vision models, full-page vs viewport behavior, uniqueness verification, file staging, and server-side serving alongside the report.
 - `references/wall-of-information-css.md` — Complete CSS toolkit for dark-themed interactive reports: cards, comparison tables, diagram blocks, radio groups, form elements, sticky submit bar, confirmation page, responsive breakpoints.
 - `references/ux-patterns.md` — UX patterns, interactive-vs-static rules, form design, color semantics
+- `references/sse-streaming-pattern.md` — Real-time SSE streaming for agent-to-browser push (thinking logs, game state, progress). Covers ThreadingTCPServer requirement, SSE endpoint pattern, client-side JS, canvas-in-flex-layout sizing, and custom server architecture beyond the mini-server template.
 - `references/hardware-verification-before-rendering.md` — Before building a report that depends on machine specs, SSH into hosts for real data. Commands, examples, pitfalls.
 - `references/webhook-delivery-types.md` — Valid delivery types (`log`, `github_comment`, platform names) and the `local` trap (produces `Unknown deliver type` warning).
-- `scripts/poller.py` — Standalone Python polling script. No shell pipes, no `| python3 -c` trigger for Hermes security scanner. Uses `urllib.request` directly. Accepts `<port>` and optional `<last_received_at>` timestamp. Exits 0 on new submission, printing JSON to stdout. Ships with the skill, copy to `/tmp/{NS}_poller.py` per session.
-- `templates/mini-server.py` — Generic durable server template (v2). Ships with the skill, not rewritten per session. Auto-computes NS, scans ports 9100-9199, emits `ir_ready`, stays alive for repeated submissions. Does NOT self-terminate — the old v1 pattern (`self.server.shutdown()`) was removed due to multi-agent collision bug (kanban t_7e288107).
+- `references/config-state-verification.md` — Commands and patterns for scraping live Hermes state (`hermes tools list`, `hermes config show`, `hermes skills list`) before making recommendations in reports. Prevents the "recommend something already installed" error.
+- `scripts/poller.py` — Standalone Python polling script. No shell pipes, no `| python3 -c` trigger for Hermes security scanner. Uses `urllib.request` directly. Args: `<port> [timeout_seconds] [since]`. Fires on ANY submission (form, quick-action button, freeform message) by keying on the server-stamped `received_at` — not only on an `action` key, which previously dropped button clicks. Optional `since` (a prior `received_at`) makes it ignore anything not strictly newer, so a restarted poller won't re-fire on a stale `latest.json`. Exits 0 on new submission, printing JSON to stdout. Ships with the skill, copy to `/tmp/{NS}_poller.py` per session.
+- `templates/mini-server.py` — Generic durable server template (v2). Ships with the skill, not rewritten per session. NS resolution precedence: `IR_NS` (full override — pin it to survive restarts and avoid the NS-drift-on-restart bug) > `IR_AGENT`/`IR_SESSION` > `HERMES_AGENT_NAME`/`HERMES_SESSION_ID` > timestamp. Scans ports 9100-9199, emits `ir_ready`, stays alive for repeated submissions. Does NOT self-terminate — the old v1 pattern (`self.server.shutdown()`) was removed due to multi-agent collision bug (kanban t_7e288107).
 
 ## Live Status Polling (Session Dashboard)
 
@@ -746,8 +765,11 @@ function renderTree(activeId) {
 - **CRITICAL: `terminal(background=true)` Python servers may lose stdout or die from bash ioctl errors.** The bash wrapper around background processes calls `tcsetattr` on a non-TTY fd. Two failure modes: (a) **hard** — the process exits with code 137/143 before serving a single request; (b) **soft** — the process survives and serves content normally, but stdout capture fails, making the `ir_ready` startup signal invisible in process output. In the soft mode, find the server by probing ports with curl: `for p in {9100..9199}; do code=$(curl -so /dev/null -w '%{http_code}' http://localhost:$p/ 2>/dev/null); [ "$code" = 200 ] && { echo "Found on $p"; break; }; done`. The workaround remains: launch via `execute_code` with a direct `subprocess.Popen` call. See "Start the server" section for the execute_code pattern. This is the single most likely failure mode when running interactive reports.
 
 **Refinement from practice:** When using `execute_code` + `subprocess.Popen`, add `preexec_fn=lambda: signal.signal(signal.SIGHUP, signal.SIG_IGN)` to the `Popen` call. This prevents the child server from dying when the execute_code process terminates and delivers SIGHUP to the process group. Without it, the server can exit silently after a few seconds even though the tool call itself succeeds.
+- **CRITICAL: Use ThreadingTCPServer when your server has SSE or long-lived connections.** `socketserver.TCPServer` is single-threaded — an SSE `while True` loop blocks ALL other requests (form submissions, state polling, everything). Always use `socketserver.ThreadingTCPServer` with `daemon_threads=True` for servers with SSE endpoints. This was discovered in production: a maze-viewer server with SSE stalled completely under TCPServer, and requests timed out until the SSE client disconnected.
+- **Canvas rendering in flex layouts needs explicit sizing.** A `<canvas>` inside a flex column+row layout will render at 0x0 unless the container chain has `min-height: 0` on every flex ancestor and `width:100%; height:100%` on the canvas wrapper. The default `min-height: auto` on flex items prevents shrinking below content height. Pattern: `maze-panel { display:flex; flex:1; min-height:0; }` → `maze-canvas-wrap { width:100%; height:100%; display:flex; }` → `canvas { display:block; }`. Without this, users see a tiny or invisible visualization.
 - **Do NOT auto-open the browser from the server's `__main__` block.** The agent opens the browser deliberately once. Remove `webbrowser.open` from the server template entirely — the agent controls browser lifecycle via `terminal("open http://...")`.
 - **Don't build the HTML and the server as a single script.** Keep them separate. The server script serves files; the HTML files change per report. Separation makes iteration faster.
+- **CRITICAL: Verify system configuration state before making recommendations about what to install or enable.** If your report recommends installing tools, enabling config options, or changing system state, you MUST scrape the actual live state first with commands like `hermes config show`, `hermes tools list`, `hermes skills list`, and `ls ~/.hermes/skills/*/SKILL.md` (or `find ~/.hermes/skills -name SKILL.md`). Build the report from ground truth, not assumptions. The user will catch incorrect recommendations immediately and it wastes trust. See `references/config-state-verification.md` for the specific commands per platform.
 - **CRITICAL: Port collision with sibling agents.** The port range (9100-9199) is shared
   by ALL copies of this skill running on the same machine. If another agent started a
   report server first, it owns one of these ports. Your port scanner may pick the SAME
@@ -768,7 +790,12 @@ function renderTree(activeId) {
 - **Kill ALL stale processes on the port range before starting.** An old server holding port 8899 won't release instantly. Kill by PID, then wait 1s for the port to fully release before starting the new server. Without this, the new server's port scanner can race with the dying old one and both end up on the same port. Use: `lsof -ti :9100 | xargs kill 2>/dev/null; sleep 1`. **Better yet, kill the FULL 9100-9199 range** before starting: `for p in {9100..9199}; do lsof -ti :$p 2>/dev/null | xargs kill -9 2>/dev/null || true; done; sleep 1`.
 - **Read the startup signal from process output, not by guessing.** The server emits `ir_ready ns=... port=...` on stdout. Read it to get NS and PORT before opening the browser. Do not assume port 9100 -- the scanner may have picked a different one. If process output is consistently empty despite the process status showing "running" (soft ioctl-failure mode), probe ports with curl: `for p in {9100..9199}; do code=$(curl -so /dev/null -w '%{http_code}' http://localhost:$p/ 2>/dev/null); [ "$code" = 200 ] && { echo "Found on $p"; break; }; done`.
 - **Clear the response directory on restart.** Stale responses from a prior run get read as if the user just submitted. Delete `/tmp/{NS}_responses/` when starting fresh.
+- **CRITICAL: Do NOT delete the response directory while the server is running.** The server creates `RESPONSE_DIR` on startup via `os.makedirs(exist_ok=True)` but does NOT recreate it on each POST. If you `shutil.rmtree` the directory mid-session, subsequent form submissions fail silently (500 errors, no JSON written). Restart the server if you need to clear responses mid-session.
+- **Read the LATEST response, not a stale one.** Multiple submissions write to `latest.json`. But if you changed the page (e.g., rebuilt the concept lab with different form fields) and read old JSON, you'll present wrong data to the user. After any page rebuild, clear the response dir AND restart the server.
+
+**NEVER delete the responses directory while the server is running.** The server creates the directory at startup and writes submissions to it. If you `shutil.rmtree` the responses directory mid-session (e.g., during a page rebuild), the server will silently fail to write form submissions — the user clicks "Submit" and nothing happens, with no error message. This happened in production: user reported "I clicked lock-in but nothing happened. boo." If you must rebuild the page, either (a) restart the server after recreating the responses dir, or (b) `mkdir -p` the directory back before telling the user to submit again.
 - **If the user submits multiple times, the latest response is overwritten.** Each submission writes to `/tmp/{NS}_responses/latest.json`. The agent should track which submissions it has already processed by comparing timestamps.
+- **Verify form submissions against conversation context before building on them.** The responses directory accumulates JSON from multiple submissions. If you rebuild the page mid-session, old submissions remain in the directory. Reading `latest.json` may return a STALE submission from 20 minutes ago that doesn't match what the user just said they picked. Pattern: after reading the form response, echo the key choices back to the user ("I read: Social Deduction Tournament, Fog of War, Code Bots — correct?") before building the next phase on potentially wrong data. In one session, the agent built an entire Phase 2 API spec and wireframe on Betrayal Race — the user corrected: "wait - you didn't read my answers at all! I picked Social Deduction Tournament." This was a stale JSON read.
 - **The `/last-response` endpoint returns the most recent submission.** The agent polls this endpoint to detect new submissions. If no submission has been received, it returns `{"submitted": false}`.
 - **After submitting, redirect to `/submitted`** so the user doesn't resubmit accidentally (double-submission of the same form corrupts the intent).
 - **If the user submits multiple times (persistent server), the response file is overwritten each time.** The last submission wins. This is intentional — the user can change their mind.
@@ -776,6 +803,10 @@ function renderTree(activeId) {
 - **Avoid excessive complexity.** One page or two linked pages is enough. More than that and the user loses track of what they're deciding.
 - **When the user corrects an assumption, verify before rendering.** If they say your architecture is wrong, SSH into the machines, run real commands, and build the corrected page from real data — don't just write a new HTML page based on the correction without independent verification.
 - **Live session page polls do NOT inflate page counters.** The `/session-status` endpoint is handled in its own branch and doesn't increment `pvs`. Only actual page visits (GET on a PAGES-registered route) increment the counter. The dashboard's JS polls `/session-status` every 2s — those don't count as page views.
+- **CRITICAL: Verify the browser actually renders your content, not just that the server responds 200.**
+- **CRITICAL: Dark-theme canvas fill colors MUST have high contrast against the background.** A fill of `#111827` on background `#0d1117` differs by only 1-2 points per RGB channel — effectively invisible. Users report "nothing is showing" even though the canvas IS rendering. Minimum 10 points per channel difference. For visited/active cells on `#0d1117`, use fills like `#1d2b3a` + overlay `rgba(88,166,255,0.35)`. Verify: `ctx.getImageData(x,y,1,1).data` should differ visibly from background RGB. When a custom HTML/JS page depends on client-side state variables (an ID, session token, or any value that must match between agent-driven backend operations and the browser's JS scope), serving the correct HTML is not enough. The user said "not a single thing is showing" — the server was up, HTML was correct, but the browser was showing stale data because its JS variables (mazeId, sessionId) referenced a different backend entity than the one the agent was driving. Detection: after opening the browser, use `browser_console` to check whether the JS state matches. Fix: inject the correct values directly: `browser_console(expression='varName = "correctValue"; renderFunction();')`. Cause: the page auto-generated an ID on load that differs from the one the agent created programmatically; or the user navigated away and back, resetting JS scope; or the page auto-refreshed. This is distinct from a dead server — the backend is alive, the HTML is served, but nothing renders.
 - **Reset counters when restarting the server.** If you're reusing an old server process, its global counters (pvs, form_count) carry over from the previous session. Kill and restart fresh.
 - **`browser_vision` captures full-page, not viewport.** When taking screenshots for promotional use, `browser_vision` always renders the entire document regardless of scroll position. Scrolling then calling `browser_vision` again produces an identical image. If you need distinct screenshots, serve different pages/URLs and capture each separately. Always verify uniqueness with `md5` before using multiple screenshots as separate assets.  See `references/screenshot-capture-technique.md` for the full workflow.
+- **CRITICAL: When patching the server to add custom endpoints, insert new `elif` blocks BEFORE the static file handler, not after.** The mini-server template has a final `elif STATIC_DIR` block that serves static files. If you insert a new endpoint handler after this block (by replacing only the `STATIC_DIR` line in a patch), the new code ends up orphaned inside the static file handler's scope, breaking everything. Always patch ABOVE the STATIC_DIR block, and verify indentation after patching. The server crashes silently with broken structure.
 - **`/update-status` collides with `/submit` if both save to the same file.** Keep status updates and form submissions on separate endpoints or separate response files.
+- ****CRITICAL: Echo parsed choices before acting on a submission.** Form JSON can be corrupted by JS bugs, stale page state, or multiple submissions. Before designing anything from a user's form choices, read `latest.json`, echo a plain-text summary of the parsed choices back to the user, and ask "Is this correct?" Wait for confirmation before spending cycles on architecture, API specs, or wireframes. A 10-second echo saves a 10-minute rebuild. This session: a concept lab form appeared to select Betrayal Race when the user had actually selected Social Deduction — full Phase 2 API spec was built for the wrong game type.** The mini-server recomputes NS from env vars or timestamp on every startup. When restarting the server mid-session, this may produce a DIFFERENT NS than the one used for HTML files — all pages 404. Either hardcode NS in the server (`NS = "ir_argus_<fixed>"`) or restart via execute_code with explicit NS. See `references/ns-drift-on-restart.md`. This bit this session: NS changed from `ir_argus_20260517_021` to `ir_argus_20260517_130` on restart, breaking all routes.
